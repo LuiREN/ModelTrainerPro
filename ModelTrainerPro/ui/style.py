@@ -16,9 +16,11 @@ COLOR_ERROR = "#F44336"  # Красный для ошибок
 COLOR_WARNING = "#FFC107"  # Желтый для предупреждений
 
 # CSS стили для приложения
+# Обновим стили для принудительной светлой темы
 STYLESHEET = f"""
-QMainWindow, QDialog {{
+QMainWindow, QDialog, QWidget {{
     background-color: {COLOR_BACKGROUND};
+    color: {COLOR_TEXT};
 }}
 
 QLabel {{
@@ -83,6 +85,8 @@ QComboBox::down-arrow {{
 QComboBox QAbstractItemView {{
     border: 1px solid {COLOR_PRIMARY_LIGHT};
     selection-background-color: {COLOR_PRIMARY_LIGHT};
+    background-color: white;
+    color: {COLOR_TEXT};
 }}
 
 QLineEdit, QTextEdit, QPlainTextEdit {{
@@ -102,6 +106,7 @@ QProgressBar {{
     border-radius: 4px;
     background-color: white;
     text-align: center;
+    color: {COLOR_TEXT};
 }}
 
 QProgressBar::chunk {{
@@ -114,12 +119,14 @@ QGroupBox {{
     margin-top: 10px;
     font-weight: bold;
     color: {COLOR_PRIMARY_DARK};
+    background-color: {COLOR_BACKGROUND};
 }}
 
 QGroupBox::title {{
     subcontrol-origin: margin;
     subcontrol-position: top center;
     padding: 0 5px;
+    background-color: {COLOR_BACKGROUND};
 }}
 
 QTabWidget::pane {{
@@ -144,6 +151,7 @@ QTabBar::tab:selected, QTabBar::tab:hover {{
 
 QCheckBox {{
     color: {COLOR_TEXT};
+    background-color: transparent;
 }}
 
 QCheckBox::indicator {{
@@ -153,6 +161,7 @@ QCheckBox::indicator {{
 
 QRadioButton {{
     color: {COLOR_TEXT};
+    background-color: transparent;
 }}
 
 QRadioButton::indicator {{
@@ -164,6 +173,8 @@ QTableView {{
     border: 1px solid {COLOR_PRIMARY_LIGHT};
     gridline-color: {COLOR_PRIMARY_LIGHT};
     selection-background-color: {COLOR_PRIMARY_LIGHT};
+    background-color: white;
+    color: {COLOR_TEXT};
 }}
 
 QHeaderView::section {{
@@ -180,6 +191,7 @@ QStatusBar {{
 
 QMenuBar {{
     background-color: {COLOR_SECONDARY};
+    color: {COLOR_TEXT};
 }}
 
 QMenuBar::item {{
@@ -195,6 +207,7 @@ QMenuBar::item:selected {{
 QMenu {{
     background-color: white;
     border: 1px solid {COLOR_PRIMARY_LIGHT};
+    color: {COLOR_TEXT};
 }}
 
 QMenu::item {{
@@ -210,6 +223,89 @@ QToolTip {{
     background-color: {COLOR_PRIMARY_DARK};
     color: white;
     border: none;
+}}
+
+QScrollArea {{
+    background-color: white;
+    color: {COLOR_TEXT};
+}}
+
+QScrollBar:vertical {{
+    border: 1px solid #C4C4C4;
+    background: white;
+    width: 15px;
+    margin: 16px 0 16px 0;
+}}
+
+QScrollBar::handle:vertical {{
+    background: {COLOR_PRIMARY_LIGHT};
+    min-height: 20px;
+}}
+
+QScrollBar::add-line:vertical {{
+    border: 1px solid #C4C4C4;
+    background: white;
+    height: 15px;
+    subcontrol-position: bottom;
+    subcontrol-origin: margin;
+}}
+
+QScrollBar::sub-line:vertical {{
+    border: 1px solid #C4C4C4;
+    background: white;
+    height: 15px;
+    subcontrol-position: top;
+    subcontrol-origin: margin;
+}}
+
+QScrollBar:horizontal {{
+    border: 1px solid #C4C4C4;
+    background: white;
+    height: 15px;
+    margin: 0 16px 0 16px;
+}}
+
+QScrollBar::handle:horizontal {{
+    background: {COLOR_PRIMARY_LIGHT};
+    min-width: 20px;
+}}
+
+QScrollBar::add-line:horizontal {{
+    border: 1px solid #C4C4C4;
+    background: white;
+    width: 15px;
+    subcontrol-position: right;
+    subcontrol-origin: margin;
+}}
+
+QScrollBar::sub-line:horizontal {{
+    border: 1px solid #C4C4C4;
+    background: white;
+    width: 15px;
+    subcontrol-position: left;
+    subcontrol-origin: margin;
+}}
+
+QSpinBox, QDoubleSpinBox {{
+    border: 1px solid {COLOR_PRIMARY_LIGHT};
+    border-radius: 4px;
+    padding: 5px;
+    background-color: white;
+    color: {COLOR_TEXT};
+}}
+
+QDateEdit, QTimeEdit, QDateTimeEdit {{
+    border: 1px solid {COLOR_PRIMARY_LIGHT};
+    border-radius: 4px;
+    padding: 5px;
+    background-color: white;
+    color: {COLOR_TEXT};
+}}
+
+/* Для всех виджетов, для которых не указаны явные стили */
+* {{
+    background-color: {COLOR_BACKGROUND};
+    color: {COLOR_TEXT};
 }}
 """
 

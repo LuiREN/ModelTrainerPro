@@ -74,22 +74,20 @@ class ModelConfigDialog(QDialog):
             # Создаем группу для параметра
             param_group = QGroupBox(param_info['description'])
             param_layout = QVBoxLayout(param_group)
-            
+        
             # Создаем соответствующий элемент управления в зависимости от типа параметра
             if param_info['type'] == 'int':
                 widget = QSpinBox()
                 widget.setMinimum(param_info.get('min', 0))
                 widget.setMaximum(param_info.get('max', 1000))
-    
-                # Специальная обработка для параметров, где None является значением по умолчанию
-                default_value = param_info.get('default')
-                if default_value is None and param_name == 'max_depth':
-                    # Для max_depth используем 0 как представление None
-                    widget.setValue(0)
-                    # Добавим галочку или специальную подсказку, что 0 означает "None (без ограничений)"
+            
+                # Особая обработка для параметра max_depth
+                if param_name == 'max_depth' and param_info.get('default') is None:
+                    widget.setValue(0)  # Используем 0 для обозначения None
+                    param_layout.addWidget(QLabel("(0 означает 'без ограничений')"))
                 else:
-                    # Для других параметров используем значение по умолчанию или 0
-                    widget.setValue(default_value if default_value is not None else 0)
+                    default_value = param_info.get('default', 0)
+                    widget.setValue(0 if default_value is None else default_value)
                 
             elif param_info['type'] == 'float':
                 widget = QDoubleSpinBox()

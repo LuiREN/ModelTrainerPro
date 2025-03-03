@@ -363,7 +363,13 @@ class MainWindow(QMainWindow):
             
             # Очищаем существующие параметры
             for i in reversed(range(self.params_content_layout.count())):
-                self.params_content_layout.itemAt(i).widget().deleteLater()
+                item = self.params_content_layout.itemAt(i)
+                widget = item.widget()
+                if widget:
+                    widget.deleteLater()
+                else:
+                    # Если элемент не виджет (например, это layout), удаляем его по-другому
+                    self.params_content_layout.removeItem(item)
             
             # Добавляем параметры
             for param, value in self.model_params.items():

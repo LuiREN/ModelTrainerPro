@@ -27,11 +27,14 @@ def main() -> None:
     os.makedirs('saved_models', exist_ok=True)
     os.makedirs('reports', exist_ok=True)
     
+    # Отключаем использование стилей системы (предотвращает использование темной темы)
+    os.environ["QT_QPA_PLATFORM_THEME"] = ""
+    
     # Создаем экземпляр приложения
     app = QApplication(sys.argv)
     
-    # Устанавливаем русскую локализацию
-    app.setStyle('Fusion')  # Использование стиля Fusion для лучшей кроссплатформенности
+    # Устанавливаем стиль Fusion и принудительно светлую тему
+    app.setStyle('Fusion')
     
     # Создаем и показываем главное окно
     main_window = MainWindow()
