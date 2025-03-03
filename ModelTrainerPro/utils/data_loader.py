@@ -73,52 +73,60 @@ class DataLoader:
                     random_state: int = 42, scale_data: bool = True) -> Dict[str, Any]:
         """
         Подготавливает данные для обучения модели.
-        
+    
         Args:
             target_column (str): Имя целевого столбца (зависимая переменная)
             test_size (float, optional): Доля тестовых данных. По умолчанию 0.2.
             random_state (int, optional): Начальное значение для генератора случайных чисел. По умолчанию 42.
             scale_data (bool, optional): Флаг масштабирования данных. По умолчанию True.
-            
+        
         Returns:
             Dict[str, Any]: Словарь с обучающими и тестовыми данными
-            
+        
         Raises:
             ValueError: Если данные не загружены или целевой столбец не найден
         """
         if self.data is None:
             raise ValueError("Данные не загружены")
-        
+    
         if target_column not in self.data.columns:
             raise ValueError(f"Целевой столбец '{target_column}' не найден в данных")
-        
+    
         self.target_column = target_column
-        
+    
+        # Создаем копию данных для работы
+        working_data = self.data.copy()
+    
         # Отделяем признаки от целевой переменной
-        X = self.data.drop(columns=[target_column])
-        
-        # Если есть столбец с датой, удаляем его
-        if 'Дата' in X.columns:
-            X = X.drop(columns=['Дата'])
-        
+        X = working_data.drop(columns=[target_column])
+    
+        # Удаляем все нечисловые столбцы (включая 'Дата')
+        for col in X.columns.tolist():
+            # Проверяем, является ли столбец числовым
+            try:
+                X[col] = pd.to_numeric(X[col])
+            except:
+                # Если столбец содержит нечисловые данные, удаляем его
+                X = X.drop(columns=[col])
+    
         # Удаляем строки с пропущенными значениями
         X = X.dropna()
-        y = self.data.loc[X.index, target_column]
-        
+        y = working_data.loc[X.index, target_column]
+    
         # Сохраняем названия признаков
         self.features = list(X.columns)
-        
+    
         # Разделяем данные на обучающую и тестовую выборки
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
             X, y, test_size=test_size, random_state=random_state
         )
-        
+    
         # Масштабирование данных, если требуется
         if scale_data:
             self.scaler = StandardScaler()
             self.X_train = self.scaler.fit_transform(self.X_train)
             self.X_test = self.scaler.transform(self.X_test)
-        
+    
         return {
             'X_train': self.X_train,
             'X_test': self.X_test,
