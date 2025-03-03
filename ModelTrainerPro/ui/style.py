@@ -47,22 +47,22 @@ QPushButton {{
     font-weight: bold;
 }}
 
-QPushButton#helpButton {
+QPushButton#helpButton {{
     background-color: {COLOR_PRIMARY_DARK};
     color: white;
     border-radius: 15px;
     padding: 0px;
     font-weight: bold;
     font-size: 16px;
-}
+}}
 
-QPushButton#helpButton:hover {
+QPushButton#helpButton:hover {{
     background-color: {COLOR_PRIMARY};
-}
+}}
 
-QPushButton#helpButton:pressed {
+QPushButton#helpButton:pressed {{
     background-color: {COLOR_HIGHLIGHT};
-}
+}}
 
 QPushButton:hover {{
     background-color: {COLOR_PRIMARY};
@@ -192,14 +192,15 @@ QTableView {{
     selection-background-color: {COLOR_PRIMARY_LIGHT};
     background-color: white;
     color: {COLOR_TEXT};
+    alternate-background-color: #F0F0FF;  
 }}
 
-QHeaderView::section {
-    background-color: {COLOR_PRIMARY_LIGHT};  # Светлее, чем было
+QHeaderView::section {{
+    background-color: {COLOR_PRIMARY_LIGHT};
     color: white;
     padding: 4px;
     border: 1px solid {COLOR_PRIMARY_LIGHT};
-}
+}}
 
 QStatusBar {{
     background-color: {COLOR_SECONDARY};

@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import pandas as pd
 import numpy as np
 from typing import Dict, Any, List, Optional, Tuple
@@ -134,8 +135,11 @@ class MainWindow(QMainWindow):
         """Показывает окно справки."""
         from ui.help_dialog import HelpDialog
     
-        help_dialog = HelpDialog(self)
-        help_dialog.exec()
+        # Создаем окно справки как атрибут класса, чтобы оно не удалялось сборщиком мусора
+        self.help_dialog = HelpDialog(self)
+    
+        # Просто показываем окно без блокировки основного интерфейса
+        self.help_dialog.show()
     
     def create_toolbar(self):
         """Создает панель инструментов."""

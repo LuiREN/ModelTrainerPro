@@ -5,9 +5,9 @@ from typing import Dict, Any, List
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, 
     QPushButton, QLabel, QComboBox, QFileDialog, QMessageBox,
-    QTableView, QScrollArea, QWidget, QLineEdit, QGroupBox
+    QTableView, QScrollArea, QWidget, QLineEdit, QGroupBox,  QInputDialog, QMenu
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QAbstractTableModel
 from PyQt6.QtGui import QFont
 
 from utils.data_loader import DataLoader
@@ -69,11 +69,14 @@ class ModelTestDialog(QDialog):
         self.model_info = model_info
         self.data_loader = data_loader
         self.feature_names = model_info['feature_names']
+        window_width = max(1000, min(1500, 800 + len(self.feature_names) * 10))  
+        window_height = max(700, min(900, 600 + len(self.feature_names) * 5))
+        self.resize(window_width, window_height)
         self.test_data = None
         
         # Настройка диалога
         self.setWindowTitle(f"Тестирование модели {model_info['model_type']}")
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(1000, 700)
         
         # Основной layout
         self.main_layout = QVBoxLayout(self)
@@ -204,20 +207,39 @@ class ModelTestDialog(QDialog):
     
     def load_test_data(self):
         """Загружает тестовые данные из файла."""
+        # Создаем меню с вариантами загрузки данных
+        data_menu = QMenu(self)
+    
+        # Добавляем действие "Загрузить из файла"
+        load_file_action = data_menu.addAction("Загрузить из файла")
+        load_file_action.triggered.connect(self.load_test_file)
+    
+        # Добавляем действие "Сгенерировать случайные данные"
+        random_data_action = data_menu.addAction("Сгенерировать тестовые данные")
+        random_data_action.triggered.connect(self.generate_random_data)
+
+        realistic_data_action = data_menu.addAction("Сгенерировать реалистичные данные")
+        realistic_data_action.triggered.connect(self.generate_realistic_data)
+    
+        # Показываем меню
+        data_menu.exec(self.load_data_btn.mapToGlobal(self.load_data_btn.rect().bottomLeft()))
+    
+    def load_test_file(self):
+        """Загружает тестовые данные из файла."""
         # Открываем диалог выбора файла
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Выберите файл с тестовыми данными", "", "CSV файлы (*.csv);;Excel файлы (*.xlsx *.xls)"
         )
-        
+    
         if file_path:
             try:
-                # Загрузка данных
+                # Загрузка данных (старый код из load_test_data)
                 self.test_data = pd.read_csv(file_path) if file_path.endswith('.csv') \
                     else pd.read_excel(file_path)
-                
+            
                 # Проверяем наличие необходимых признаков
                 missing_features = [f for f in self.feature_names if f not in self.test_data.columns]
-                
+            
                 if missing_features:
                     QMessageBox.warning(
                         self, 
@@ -225,16 +247,112 @@ class ModelTestDialog(QDialog):
                         f"В загруженных данных отсутствуют следующие признаки: {', '.join(missing_features)}"
                     )
                     return
-                
+            
                 # Отображение данных в таблице
                 model = PandasModel(self.test_data)
                 self.data_table.setModel(model)
-                
+            
                 # Активируем кнопку предсказания
                 self.predict_btn.setEnabled(True)
-                
+            
             except Exception as e:
                 QMessageBox.critical(self, "Ошибка загрузки данных", str(e))
+
+    def generate_random_data(self):
+        """Генерирует случайные данные для тестирования."""
+        try:
+            # Запрашиваем количество записей
+            num_samples, ok = QInputDialog.getInt(
+                self, "Генерация тестовых данных", 
+                "Введите количество тестовых записей:", 10, 1, 1000, 1
+            )
+        
+            if not ok:
+                return
+        
+            # Создаем случайные данные для каждого признака
+            data = {}
+        
+            # Получаем диапазоны значений для каждого признака из информации о модели
+            # или используем стандартные диапазоны
+            for feature in self.feature_names:
+                # Можно добавить более умную логику генерации данных на основе типа признака
+                # Здесь для простоты генерируем случайные числа в диапазоне [0, 100]
+                data[feature] = np.random.uniform(0, 100, num_samples)
+        
+            # Создаем DataFrame
+            self.test_data = pd.DataFrame(data)
+        
+            # Отображение данных в таблице
+            model = PandasModel(self.test_data)
+            self.data_table.setModel(model)
+        
+            # Активируем кнопку предсказания
+            self.predict_btn.setEnabled(True)
+        
+            QMessageBox.information(
+                self, 
+                "Данные сгенерированы", 
+                f"Успешно сгенерировано {num_samples} записей с случайными значениями"
+            )
+        
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка генерации данных", str(e))
+
+    def generate_realistic_data(self):
+        """Генерирует более реалистичные данные для тестирования на основе информации о модели."""
+        try:
+            # Если у нас есть целевая переменная и обучающие данные,
+            # мы можем использовать их для получения диапазонов значений
+        
+            # Предполагаем, что у нас есть доступ к исходным данным через data_loader
+            if hasattr(self.data_loader, 'data') and self.data_loader.data is not None:
+                # Запрашиваем количество записей
+                num_samples, ok = QInputDialog.getInt(
+                    self, "Генерация тестовых данных", 
+                    "Введите количество тестовых записей:", 10, 1, 1000, 1
+                )
+            
+                if not ok:
+                    return
+            
+                # Создаем данные на основе диапазонов значений из обучающего набора
+                data = {}
+            
+                for feature in self.feature_names:
+                    if feature in self.data_loader.data.columns:
+                        # Получаем минимальное и максимальное значения
+                        feature_data = self.data_loader.data[feature]
+                        feature_min = feature_data.min()
+                        feature_max = feature_data.max()
+                    
+                        # Генерируем случайные значения в этом диапазоне
+                        data[feature] = np.random.uniform(feature_min, feature_max, num_samples)
+                    else:
+                        # Если признак не найден, используем стандартный диапазон
+                        data[feature] = np.random.uniform(0, 100, num_samples)
+            
+                # Создаем DataFrame
+                self.test_data = pd.DataFrame(data)
+            
+                # Отображение данных в таблице
+                model = PandasModel(self.test_data)
+                self.data_table.setModel(model)
+            
+                # Активируем кнопку предсказания
+                self.predict_btn.setEnabled(True)
+            
+                QMessageBox.information(
+                    self, 
+                    "Данные сгенерированы", 
+                    f"Успешно сгенерировано {num_samples} записей с реалистичными значениями"
+                )
+            else:
+                # Если нет доступа к обучающим данным, используем простую генерацию
+                self.generate_random_data()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка генерации данных", str(e))
     
     def predict(self):
         """Делает предсказания на загруженных данных."""
