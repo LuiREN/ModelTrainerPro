@@ -208,3 +208,101 @@ class ReportGenerator:
                 f.write("  - Добавить новые признаки или преобразовать существующие\n")
         
         return report_path
+    
+    def generate_hyperparameter_report(self, hyperparameter_results: Dict[str, Any], 
+                                      model_type: str) -> str:
+        """
+        Генерирует отчет о влиянии гиперпараметров на качество модели.
+        
+        Args:
+            hyperparameter_results (Dict[str, Any]): Результаты поиска гиперпараметров
+            model_type (str): Тип модели
+            
+        Returns:
+            str: Путь к сгенерированному отчету
+        """
+        # Формируем имя файла отчета
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        report_filename = f"{model_type}_hyperparameters_{timestamp}.txt"
+        report_path = os.path.join(self.output_dir, report_filename)
+        
+        # Создаем отчет
+        with open(report_path, 'w', encoding='utf-8') as f:
+            f.write(f"# Отчет о влиянии гиперпараметров на модель {model_type}\n\n")
+            f.write(f"Дата создания: {time.strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+            
+            # Лучшие параметры
+            f.write("## Лучшие гиперпараметры\n\n")
+            for param, value in hyperparameter_results['best_params'].items():
+                f.write(f"* {param}: {value}\n")
+            
+            # Лучший результат
+            best_score = hyperparameter_results['best_score']
+            f.write(f"\n## Лучший результат\n\n")
+            f.write(f"* MSE: {best_score:.4f}\n")
+            f.write(f"* RMSE: {np.sqrt(best_score):.4f}\n")
+            
+            # Время поиска
+            search_time = hyperparameter_results.get('search_time', 0)
+            f.write(f"\n## Время поиска\n\n")
+            f.write(f"* {search_time:.2f} секунд\n\n")
+            
+            # Анализ влияния параметров
+            f.write("## Анализ влияния параметров\n\n")
+            
+            # Если доступны результаты перекрестной проверки
+            if 'cv_results' in hyperparameter_results:
+                cv_results = hyperparameter_results['cv_results']
+                
+                # Проходим по всем параметрам
+                params = cv_results['params'][0].keys() if cv_results['params'] else []
+                
+                for param in params:
+                    f.write(f"### Влияние параметра '{param}'\n\n")
+                    
+                    # Собираем уникальные значения параметра
+                    param_values = {}
+                    for i, params_dict in enumerate(cv_results['params']):
+                        value = params_dict[param]
+                        if value not in param_values:
+                            param_values[value] = []
+                        
+                        # Сохраняем соответствующую метрику (берем отрицательное значение, т.к. обычно используется neg_mean_squared_error)
+                        param_values[value].append(-cv_results['mean_test_score'][i])
+                    
+                    # Выводим таблицу влияния
+                    f.write("| Значение | Среднее MSE | Среднее RMSE |\n")
+                    f.write("|----------|------------|-------------|\n")
+                    
+                    for value, scores in param_values.items():
+                        avg_mse = np.mean(scores)
+                        avg_rmse = np.sqrt(avg_mse)
+                        f.write(f"| {value} | {avg_mse:.4f} | {avg_rmse:.4f} |\n")
+                    
+                    f.write("\n")
+            
+            # Выводы и рекомендации
+            f.write("## Выводы и рекомендации\n\n")
+            f.write("На основе проведенного исследования можно сделать следующие выводы:\n\n")
+            
+            # Рекомендации в зависимости от типа модели
+            if model_type == 'random_forest':
+                f.write("* Для Random Forest Regressor важными параметрами обычно являются:\n")
+                f.write("  - n_estimators (количество деревьев): чем больше, тем лучше, но с diminishing returns\n")
+                f.write("  - max_depth (максимальная глубина деревьев): помогает бороться с переобучением\n")
+                f.write("  - min_samples_split и min_samples_leaf: помогают контролировать размер дерева\n\n")
+                
+                f.write("* Рекомендуется использовать найденные оптимальные параметры или:\n")
+                f.write("  - Увеличить n_estimators для повышения точности (если время обучения не критично)\n")
+                f.write("  - Настроить max_depth для предотвращения переобучения\n")
+                
+            elif model_type == 'knn':
+                f.write("* Для KNN Regressor критическим параметром является:\n")
+                f.write("  - n_neighbors (количество соседей): маленькие значения могут приводить к переобучению, большие - к недообучению\n")
+                f.write("  - weights: 'distance' обычно работает лучше, если данные имеют неравномерное распределение\n\n")
+                
+                f.write("* Рекомендуется использовать найденные оптимальные параметры или:\n")
+                f.write("  - Экспериментировать с n_neighbors в окрестности найденного оптимального значения\n")
+                f.write("  - Попробовать другие метрики расстояния (параметр p)\n")
+        
+        return report_path
