@@ -1,8 +1,3 @@
-"""
-Модуль для загрузки и обработки данных.
-Предоставляет функции для работы с CSV файлами и подготовки данных для моделей.
-"""
-
 import pandas as pd
 import numpy as np
 from typing import Tuple, Dict, Any, List, Optional
