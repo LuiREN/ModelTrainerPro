@@ -80,7 +80,16 @@ class ModelConfigDialog(QDialog):
                 widget = QSpinBox()
                 widget.setMinimum(param_info.get('min', 0))
                 widget.setMaximum(param_info.get('max', 1000))
-                widget.setValue(param_info.get('default', 0))
+    
+                # Специальная обработка для параметров, где None является значением по умолчанию
+                default_value = param_info.get('default')
+                if default_value is None and param_name == 'max_depth':
+                    # Для max_depth используем 0 как представление None
+                    widget.setValue(0)
+                    # Добавим галочку или специальную подсказку, что 0 означает "None (без ограничений)"
+                else:
+                    # Для других параметров используем значение по умолчанию или 0
+                    widget.setValue(default_value if default_value is not None else 0)
                 
             elif param_info['type'] == 'float':
                 widget = QDoubleSpinBox()
@@ -135,7 +144,7 @@ class ModelConfigDialog(QDialog):
             else:
                 continue
             
-            # Специальная обработка для max_depth в Random Forest
+           # Специальная обработка для max_depth в Random Forest
             if param_name == 'max_depth' and isinstance(widget, QSpinBox) and widget.value() == 0:
                 value = None
             
