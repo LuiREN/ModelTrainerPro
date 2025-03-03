@@ -1,482 +1,614 @@
 import os
 import sys
-from typing import Optional, Dict, Any, List, Tuple
+import pandas as pd
+import numpy as np
+from typing import Dict, Any, List, Optional, Tuple
+from PyQt6.QtWidgets import (
+    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, 
+    QPushButton, QLabel, QComboBox, QFileDialog, QMessageBox,
+    QTableView, QSplitter, QTabWidget, QTextEdit, QGroupBox,
+    QLineEdit, QCheckBox, QProgressBar, QDialog, QScrollArea,
+    QFrame, QSpinBox, QDoubleSpinBox
+)
+from PyQt6.QtCore import Qt, QModelIndex, QAbstractTableModel, QSize, pyqtSignal, pyqtSlot
+from PyQt6.QtGui import QFont, QIcon
 
-from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-                           QLabel, QPushButton, QComboBox, QFileDialog,
-                           QTableView, QTabWidget, QGroupBox, QFormLayout,
-                           QLineEdit, QSpinBox, QDoubleSpinBox, QCheckBox,
-                           QMessageBox, QTextEdit, QSplitter)
-from PyQt6.QtCore import Qt, QAbstractTableModel, QModelIndex
-from PyQt6.QtGui import QColor, QPalette
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from ui.style import get_stylesheet
+from ui.model_config import ModelConfigDialog
+from utils.data_loader import DataLoader
 from models.model_trainer import ModelTrainer
-from utils.data_processor import DataProcessor
-from utils.file_manager import ModelManager
+from utils.report_generator import ReportGenerator
+from models.model_utils import load_model, format_metrics
 
-
-class DataTableModel(QAbstractTableModel):
-    """
-    Модель для отображения DataFrame в Qt TableView.
+class PandasModel(QAbstractTableModel):
+    """Модель для отображения данных pandas в QTableView."""
     
-    Атрибуты:
-        data (pandas.DataFrame): DataFrame для отображения.
-    """
-    def __init__(self, data):
+    def __init__(self, data: pd.DataFrame):
         """
-        Инициализация модели с данными.
+        Инициализация модели данных.
         
-        Аргументы:
-            data (pandas.DataFrame): DataFrame для отображения.
+        Args:
+            data (pd.DataFrame): Данные для отображения
         """
         super().__init__()
         self._data = data
 
-    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        """
-        Возвращает количество строк в модели.
-        
-        Аргументы:
-            parent (QModelIndex): Родительский индекс.
-            
-        Возвращает:
-            int: Количество строк.
-        """
+    def rowCount(self, parent: QModelIndex = None) -> int:
+        """Возвращает количество строк в модели."""
         return len(self._data)
 
-    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        """
-        Возвращает количество столбцов в модели.
-        
-        Аргументы:
-            parent (QModelIndex): Родительский индекс.
-            
-        Возвращает:
-            int: Количество столбцов.
-        """
+    def columnCount(self, parent: QModelIndex = None) -> int:
+        """Возвращает количество столбцов в модели."""
         return len(self._data.columns)
 
     def data(self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
-        """
-        Возвращает данные для указанной роли по заданному индексу.
-        
-        Аргументы:
-            index (QModelIndex): Индекс для получения данных.
-            role (int): Роль для получения данных.
-            
-        Возвращает:
-            Any: Запрошенные данные.
-        """
-        if not index.isValid():
-            return None
-            
-        if role == Qt.ItemDataRole.DisplayRole:
-            value = self._data.iloc[index.row(), index.column()]
-            return str(value)
-        
+        """Возвращает данные для отображения."""
+        if index.isValid():
+            if role == Qt.ItemDataRole.DisplayRole:
+                value = self._data.iloc[index.row(), index.column()]
+                # Преобразуем в строку с учетом NaN
+                if pd.isna(value):
+                    return ""
+                elif isinstance(value, float):
+                    return f"{value:.4f}"
+                return str(value)
         return None
 
-    def headerData(self, section: int, orientation: Qt.Orientation, 
-                  role: int = Qt.ItemDataRole.DisplayRole) -> Any:
-        """
-        Возвращает данные заголовка для указанной секции и ориентации.
-        
-        Аргументы:
-            section (int): Индекс секции (строки/столбца).
-            orientation (Qt.Orientation): Ориентация (горизонтальная/вертикальная).
-            role (int): Роль для получения данных.
-            
-        Возвращает:
-            Any: Запрошенные данные заголовка.
-        """
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
+        """Возвращает данные заголовков."""
         if role == Qt.ItemDataRole.DisplayRole:
             if orientation == Qt.Orientation.Horizontal:
                 return str(self._data.columns[section])
-            else:
-                return str(section + 1)
+            elif orientation == Qt.Orientation.Vertical:
+                return str(self._data.index[section])
         return None
 
-
 class MainWindow(QMainWindow):
-    """
-    Главное окно приложения ModelTrainerPro.
+    """Главное окно приложения ModelTrainerPro."""
     
-    Это окно предоставляет пользовательский интерфейс для загрузки данных, 
-    выбора и обучения моделей, настройки гиперпараметров, 
-    а также сохранения/загрузки обученных моделей.
-    """
     def __init__(self):
-        """Инициализирует главное окно и настраивает пользовательский интерфейс."""
+        """Инициализация главного окна."""
         super().__init__()
         
-        self.data_processor = DataProcessor()
+        # Инициализация компонентов
+        self.data_loader = DataLoader()
         self.model_trainer = ModelTrainer()
-        self.model_manager = ModelManager()
-
+        self.report_generator = ReportGenerator()
+        
+        # Переменные для хранения данных
+        self.data = None
+        self.trained_model = None
+        self.model_results = None
+        
+        # Настройка интерфейса
         self.setWindowTitle("ModelTrainerPro")
         self.setMinimumSize(1000, 700)
-        self.setup_ui()
-        self.apply_styles()
-    
-    def apply_styles(self) -> None:
-        """Применяет пользовательские стили к приложению."""
-        palette = QPalette()
-        palette.setColor(QPalette.ColorRole.Window, QColor(245, 245, 255))
-        palette.setColor(QPalette.ColorRole.WindowText, QColor(50, 50, 50))
-        palette.setColor(QPalette.ColorRole.Base, QColor(255, 255, 255))
-        palette.setColor(QPalette.ColorRole.AlternateBase, QColor(240, 235, 255))
-        palette.setColor(QPalette.ColorRole.Button, QColor(110, 80, 160))
-        palette.setColor(QPalette.ColorRole.ButtonText, QColor(255, 255, 255))
-        palette.setColor(QPalette.ColorRole.Highlight, QColor(130, 100, 180))
-        palette.setColor(QPalette.ColorRole.HighlightedText, QColor(255, 255, 255))
-        self.setPalette(palette)
         
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #F5F5FF;
-            }
-            QTabWidget::pane {
-                border: 1px solid #8A65B3;
-                border-top-width: 0px;
-                background-color: #FFFFFF;
-            }
-            QTabBar::tab {
-                background-color: #B79FD8;
-                color: white;
-                padding: 8px 12px;
-                margin-right: 2px;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
-            }
-            QTabBar::tab:selected {
-                background-color: #8A65B3;
-            }
-            QPushButton {
-                background-color: #6E50A0;
-                color: white;
-                border: none;
-                padding: 8px 16px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #8A65B3;
-            }
-            QPushButton:pressed {
-                background-color: #5A3F87;
-            }
-            QGroupBox {
-                border: 1px solid #B79FD8;
-                border-radius: 5px;
-                margin-top: 1ex;
-                font-weight: bold;
-                color: #3A2750;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top center;
-                padding: 0 3px;
-            }
-            QComboBox {
-                border: 1px solid #B79FD8;
-                border-radius: 3px;
-                padding: 5px;
-            }
-            QComboBox::drop-down {
-                border-left: 1px solid #B79FD8;
-            }
-            QLineEdit, QSpinBox, QDoubleSpinBox {
-                border: 1px solid #B79FD8;
-                border-radius: 3px;
-                padding: 5px;
-            }
-            QTextEdit {
-                border: 1px solid #B79FD8;
-                border-radius: 3px;
-            }
-        """)
-    
-    def setup_ui(self) -> None:
-        """Настраивает компоненты пользовательского интерфейса."""
-
-        central_widget = QWidget()
-        main_layout = QVBoxLayout(central_widget)
-
-        data_group = QGroupBox("Загрузка данных")
-        data_layout = QHBoxLayout(data_group)
+        # Применение стилей
+        self.setStyleSheet(get_stylesheet())
         
-        self.load_data_btn = QPushButton("Загрузить CSV")
+        # Создание центрального виджета
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        
+        # Главный layout
+        self.main_layout = QVBoxLayout(self.central_widget)
+        
+        # Создание заголовка
+        self.create_header()
+        
+        # Создание панелей инструментов
+        self.create_toolbar()
+        
+        # Создание основного содержимого
+        self.create_main_content()
+        
+        # Создание строки состояния
+        self.statusBar().showMessage("Готово")
+    
+    def create_header(self):
+        """Создает заголовок приложения."""
+        header_layout = QHBoxLayout()
+        
+        # Заголовок
+        header_label = QLabel("ModelTrainerPro")
+        header_label.setObjectName("header")
+        
+        # Добавление заголовка в layout
+        header_layout.addWidget(header_label)
+        header_layout.addStretch()
+        
+        # Добавление layout в главный layout
+        self.main_layout.addLayout(header_layout)
+    
+    def create_toolbar(self):
+        """Создает панель инструментов."""
+        toolbar_layout = QHBoxLayout()
+        
+        # Кнопка загрузки данных
+        self.load_data_btn = QPushButton("Загрузить данные")
         self.load_data_btn.clicked.connect(self.load_data)
         
-        self.data_path_label = QLabel("Данные не загружены")
+        # Выбор модели
+        self.model_type_label = QLabel("Модель:")
+        self.model_type_combo = QComboBox()
+        self.model_type_combo.addItems(["Random Forest", "KNN Regressor"])
         
-        data_layout.addWidget(self.load_data_btn)
-        data_layout.addWidget(self.data_path_label, 1)
-
-        splitter = QSplitter(Qt.Orientation.Vertical)
-
-        data_preview_group = QGroupBox("Просмотр данных")
-        data_preview_layout = QVBoxLayout(data_preview_group)
+        # Кнопка настройки модели
+        self.model_config_btn = QPushButton("Настроить модель")
+        self.model_config_btn.clicked.connect(self.configure_model)
+        self.model_config_btn.setEnabled(False)
         
-        self.data_table = QTableView()
-        self.data_table.setAlternatingRowColors(True)
-        data_preview_layout.addWidget(self.data_table)
+        # Кнопка обучения модели
+        self.train_model_btn = QPushButton("Обучить модель")
+        self.train_model_btn.clicked.connect(self.train_model)
+        self.train_model_btn.setEnabled(False)
         
-        tabs = QTabWidget()
-
-        training_tab = QWidget()
-        training_layout = QVBoxLayout(training_tab)
-
-        model_selection_group = QGroupBox("Выбор модели")
-        model_selection_layout = QFormLayout(model_selection_group)
-        
-        self.model_combo = QComboBox()
-        self.model_combo.addItems(["Random Forest", "KNN Regressor"])
-        self.model_combo.currentIndexChanged.connect(self.update_hyperparameters)
-        
-        model_selection_layout.addRow("Модель:", self.model_combo)
-
-        self.hyperparams_group = QGroupBox("Гиперпараметры")
-        self.hyperparams_layout = QFormLayout(self.hyperparams_group)
-  
-        buttons_layout = QHBoxLayout()
-        
-        self.train_btn = QPushButton("Обучить модель")
-        self.train_btn.clicked.connect(self.train_model)
-        
+        # Кнопка сохранения модели
         self.save_model_btn = QPushButton("Сохранить модель")
         self.save_model_btn.clicked.connect(self.save_model)
         self.save_model_btn.setEnabled(False)
         
+        # Кнопка загрузки модели
         self.load_model_btn = QPushButton("Загрузить модель")
-        self.load_model_btn.clicked.connect(self.load_model)
+        self.load_model_btn.clicked.connect(self.load_existing_model)
         
-        buttons_layout.addWidget(self.train_btn)
-        buttons_layout.addWidget(self.save_model_btn)
-        buttons_layout.addWidget(self.load_model_btn)
+        # Добавление виджетов в layout
+        toolbar_layout.addWidget(self.load_data_btn)
+        toolbar_layout.addWidget(self.model_type_label)
+        toolbar_layout.addWidget(self.model_type_combo)
+        toolbar_layout.addWidget(self.model_config_btn)
+        toolbar_layout.addWidget(self.train_model_btn)
+        toolbar_layout.addWidget(self.save_model_btn)
+        toolbar_layout.addWidget(self.load_model_btn)
         
-        training_layout.addWidget(model_selection_group)
-        training_layout.addWidget(self.hyperparams_group)
-        training_layout.addLayout(buttons_layout)
-   
-        results_tab = QWidget()
-        results_layout = QVBoxLayout(results_tab)
+        # Добавление layout в главный layout
+        self.main_layout.addLayout(toolbar_layout)
+    
+    def create_main_content(self):
+        """Создает основное содержимое окна."""
+        # Сплиттер для разделения на две части
+        self.splitter = QSplitter(Qt.Orientation.Vertical)
         
-        self.results_text = QTextEdit()
-        self.results_text.setReadOnly(True)
+        # Верхняя часть - данные
+        self.data_frame = QFrame()
+        self.data_layout = QVBoxLayout(self.data_frame)
         
-        results_layout.addWidget(self.results_text)
-  
-        tabs.addTab(training_tab, "Обучение")
-        tabs.addTab(results_tab, "Результаты")
+        # Заголовок данных
+        self.data_header = QLabel("Данные")
+        self.data_header.setObjectName("subheader")
+        self.data_layout.addWidget(self.data_header)
         
-        splitter.addWidget(data_preview_group)
-        splitter.addWidget(tabs)
+        # Содержимое данных
+        self.data_table = QTableView()
+        self.data_table.setAlternatingRowColors(True)
+        self.data_layout.addWidget(self.data_table)
         
-        main_layout.addWidget(data_group)
-        main_layout.addWidget(splitter, 1)
+        # Нижняя часть - вкладки
+        self.tabs_frame = QFrame()
+        self.tabs_layout = QVBoxLayout(self.tabs_frame)
         
-        self.setCentralWidget(central_widget)
+        # Создание вкладок
+        self.tabs = QTabWidget()
         
-        self.update_hyperparameters()
+        # Вкладка "Конфигурация"
+        self.config_tab = QWidget()
+        self.config_layout = QVBoxLayout(self.config_tab)
         
-        self.hyperparameter_widgets = {}
-
-    def update_hyperparameters(self) -> None:
-        """Обновляет пользовательский интерфейс гиперпараметров на основе выбранной модели."""
-        while self.hyperparams_layout.rowCount() > 0:
-            self.hyperparams_layout.removeRow(0)
+        # Группа выбора целевого столбца
+        self.target_group = QGroupBox("Целевой столбец")
+        self.target_layout = QVBoxLayout(self.target_group)
         
-        self.hyperparameter_widgets = {}
+        self.target_combo = QComboBox()
+        self.target_layout.addWidget(self.target_combo)
         
-        model_name = self.model_combo.currentText()
+        self.config_layout.addWidget(self.target_group)
         
-        if model_name == "Random Forest":
-            n_estimators_spin = QSpinBox()
-            n_estimators_spin.setRange(1, 1000)
-            n_estimators_spin.setValue(100)
-            n_estimators_spin.setSingleStep(10)
-            self.hyperparams_layout.addRow("Количество деревьев:", n_estimators_spin)
-            self.hyperparameter_widgets["n_estimators"] = n_estimators_spin
-            
-            max_depth_spin = QSpinBox()
-            max_depth_spin.setRange(1, 100)
-            max_depth_spin.setValue(None)
-            max_depth_spin.setSpecialValueText("None")
-            self.hyperparams_layout.addRow("Максимальная глубина:", max_depth_spin)
-            self.hyperparameter_widgets["max_depth"] = max_depth_spin
-            
-            min_samples_split_spin = QSpinBox()
-            min_samples_split_spin.setRange(2, 20)
-            min_samples_split_spin.setValue(2)
-            self.hyperparams_layout.addRow("Минимальное кол-во для разделения:", min_samples_split_spin)
-            self.hyperparameter_widgets["min_samples_split"] = min_samples_split_spin
-            
-            random_state_spin = QSpinBox()
-            random_state_spin.setRange(0, 100)
-            random_state_spin.setValue(42)
-            self.hyperparams_layout.addRow("Random state:", random_state_spin)
-            self.hyperparameter_widgets["random_state"] = random_state_spin
+        # Группа разделения данных
+        self.split_group = QGroupBox("Разделение данных")
+        self.split_layout = QGridLayout(self.split_group)
         
-        elif model_name == "KNN Regressor":
-
-            n_neighbors_spin = QSpinBox()
-            n_neighbors_spin.setRange(1, 20)
-            n_neighbors_spin.setValue(5)
-            self.hyperparams_layout.addRow("Количество соседей:", n_neighbors_spin)
-            self.hyperparameter_widgets["n_neighbors"] = n_neighbors_spin
-            
-            weights_combo = QComboBox()
-            weights_combo.addItems(["uniform", "distance"])
-            self.hyperparams_layout.addRow("Веса:", weights_combo)
-            self.hyperparameter_widgets["weights"] = weights_combo
-            
-            algorithm_combo = QComboBox()
-            algorithm_combo.addItems(["auto", "ball_tree", "kd_tree", "brute"])
-            self.hyperparams_layout.addRow("Алгоритм:", algorithm_combo)
-            self.hyperparameter_widgets["algorithm"] = algorithm_combo
-            
-            p_spin = QSpinBox()
-            p_spin.setRange(1, 2)
-            p_spin.setValue(2)
-            self.hyperparams_layout.addRow("Параметр Минковского:", p_spin)
-            self.hyperparameter_widgets["p"] = p_spin
-
-    def get_hyperparameters(self) -> Dict[str, Any]:
-        """
-        Получает текущие значения гиперпараметров из пользовательского интерфейса.
+        self.split_label = QLabel("Доля тестовых данных:")
+        self.split_spin = QDoubleSpinBox()
+        self.split_spin.setRange(0.1, 0.5)
+        self.split_spin.setSingleStep(0.05)
+        self.split_spin.setValue(0.2)
         
-        Возвращает:
-            Dict[str, Any]: Словарь с названиями и значениями гиперпараметров.
-        """
-        params = {}
+        self.random_state_label = QLabel("Random state:")
+        self.random_state_spin = QSpinBox()
+        self.random_state_spin.setRange(0, 100)
+        self.random_state_spin.setValue(42)
         
-        for name, widget in self.hyperparameter_widgets.items():
-            if isinstance(widget, QComboBox):
-                params[name] = widget.currentText()
-            elif isinstance(widget, QSpinBox) or isinstance(widget, QDoubleSpinBox):
-                if name == "max_depth" and widget.value() == widget.minimum():
-                    params[name] = None
-                else:
-                    params[name] = widget.value()
-            elif isinstance(widget, QCheckBox):
-                params[name] = widget.isChecked()
-            elif isinstance(widget, QLineEdit):
-                params[name] = widget.text()
-                
-        return params
-
-    def load_data(self) -> None:
-        """Загружает и обрабатывает данные из CSV-файла."""
+        self.scale_check = QCheckBox("Масштабировать данные")
+        self.scale_check.setChecked(True)
+        
+        self.split_layout.addWidget(self.split_label, 0, 0)
+        self.split_layout.addWidget(self.split_spin, 0, 1)
+        self.split_layout.addWidget(self.random_state_label, 1, 0)
+        self.split_layout.addWidget(self.random_state_spin, 1, 1)
+        self.split_layout.addWidget(self.scale_check, 2, 0, 1, 2)
+        
+        self.config_layout.addWidget(self.split_group)
+        self.config_layout.addStretch()
+        
+        # Вкладка "Параметры модели"
+        self.params_tab = QWidget()
+        self.params_layout = QVBoxLayout(self.params_tab)
+        
+        self.params_scroll = QScrollArea()
+        self.params_scroll.setWidgetResizable(True)
+        self.params_content = QWidget()
+        self.params_content_layout = QVBoxLayout(self.params_content)
+        
+        self.params_scroll.setWidget(self.params_content)
+        self.params_layout.addWidget(self.params_scroll)
+        
+        # Вкладка "Результаты"
+        self.results_tab = QWidget()
+        self.results_layout = QVBoxLayout(self.results_tab)
+        
+        self.metrics_group = QGroupBox("Метрики")
+        self.metrics_layout = QVBoxLayout(self.metrics_group)
+        
+        self.metrics_text = QTextEdit()
+        self.metrics_text.setReadOnly(True)
+        self.metrics_layout.addWidget(self.metrics_text)
+        
+        self.results_layout.addWidget(self.metrics_group)
+        
+        self.feature_importance_group = QGroupBox("Важность признаков")
+        self.feature_importance_layout = QVBoxLayout(self.feature_importance_group)
+        
+        self.feature_importance_text = QTextEdit()
+        self.feature_importance_text.setReadOnly(True)
+        self.feature_importance_layout.addWidget(self.feature_importance_text)
+        
+        self.results_layout.addWidget(self.feature_importance_group)
+        
+        # Вкладка "Отчеты"
+        self.reports_tab = QWidget()
+        self.reports_layout = QVBoxLayout(self.reports_tab)
+        
+        self.generate_report_btn = QPushButton("Создать отчет")
+        self.generate_report_btn.clicked.connect(self.generate_report)
+        
+        self.report_text = QTextEdit()
+        self.report_text.setReadOnly(True)
+        
+        self.reports_layout.addWidget(self.generate_report_btn)
+        self.reports_layout.addWidget(self.report_text)
+        
+        # Добавление вкладок
+        self.tabs.addTab(self.config_tab, "Конфигурация")
+        self.tabs.addTab(self.params_tab, "Параметры модели")
+        self.tabs.addTab(self.results_tab, "Результаты")
+        self.tabs.addTab(self.reports_tab, "Отчеты")
+        
+        self.tabs_layout.addWidget(self.tabs)
+        
+        # Добавление фреймов в сплиттер
+        self.splitter.addWidget(self.data_frame)
+        self.splitter.addWidget(self.tabs_frame)
+        
+        # Установка размеров сплиттера
+        self.splitter.setSizes([300, 400])
+        
+        # Добавление сплиттера в главный layout
+        self.main_layout.addWidget(self.splitter)
+    
+    def load_data(self):
+        """Загружает данные из CSV файла."""
+        # Открываем диалог выбора файла
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Выберите файл CSV", "", "CSV Files (*.csv);;All Files (*)"
+            self, "Выберите файл с данными", "", "CSV файлы (*.csv);;Excel файлы (*.xlsx *.xls)"
         )
         
-        if not file_path:
-            return
-            
-        try:
-            self.data_processor.load_data(file_path)
-
-            self.data_path_label.setText(file_path)
-           
-            model = DataTableModel(self.data_processor.data)
-            self.data_table.setModel(model)
-          
-            self.data_table.resizeColumnsToContents()
-            
-            self.train_btn.setEnabled(True)
-            
-            QMessageBox.information(self, "Успешно", "Данные успешно загружены")
-        except Exception as e:
-            QMessageBox.critical(self, "Ошибка", f"Ошибка при загрузке данных: {str(e)}")
-
-    def train_model(self) -> None:
-        """Обучает выбранную модель с текущими гиперпараметрами."""
-        if self.data_processor.data is None:
-            QMessageBox.warning(self, "Предупреждение", "Сначала загрузите данные")
-            return
-            
-        try:
-         
-            model_name = self.model_combo.currentText()
-            hyperparams = self.get_hyperparameters()
-      
-            X_train, X_test, y_train, y_test = self.data_processor.prepare_data_for_training()
-      
-            metrics, model = self.model_trainer.train(
-                model_name, X_train, X_test, y_train, y_test, hyperparams
-            )
-      
-            self.results_text.clear()
-            self.results_text.append(f"<h2>Результаты обучения модели {model_name}</h2>")
-            self.results_text.append("<h3>Метрики:</h3>")
-            for metric_name, value in metrics.items():
-                self.results_text.append(f"<p><b>{metric_name}:</b> {value:.4f}</p>")
+        if file_path:
+            try:
+                # Загрузка данных
+                self.data = self.data_loader.load_data(file_path)
                 
-            self.results_text.append("<h3>Гиперпараметры:</h3>")
-            for param_name, value in hyperparams.items():
-                self.results_text.append(f"<p><b>{param_name}:</b> {value}</p>")
-  
-            result_file = self.model_trainer.save_results_to_file(
-                model_name, hyperparams, metrics
-            )
-            self.results_text.append(f"<p>Результаты сохранены в файл: {result_file}</p>")
+                # Отображение данных в таблице
+                model = PandasModel(self.data)
+                self.data_table.setModel(model)
+                
+                # Обновление списка столбцов
+                self.update_column_list()
+                
+                # Активация кнопок
+                self.model_config_btn.setEnabled(True)
+                self.train_model_btn.setEnabled(True)
+                
+                # Выводим сообщение в строке состояния
+                self.statusBar().showMessage(f"Данные загружены: {os.path.basename(file_path)}")
+                
+            except Exception as e:
+                QMessageBox.critical(self, "Ошибка загрузки данных", str(e))
+    
+    def update_column_list(self):
+        """Обновляет список столбцов в выпадающих списках."""
+        if self.data is not None:
+            # Очищаем список
+            self.target_combo.clear()
             
+            # Добавляем все столбцы
+            for column in self.data.columns:
+                if column != 'Дата':  # Исключаем столбец с датой
+                    self.target_combo.addItem(column)
+    
+    def configure_model(self):
+        """Открывает диалог настройки модели."""
+        if self.data is None:
+            QMessageBox.warning(self, "Внимание", "Сначала загрузите данные")
+            return
+        
+        # Определяем тип модели
+        model_type = self.get_model_type_key()
+        
+        # Создаем диалог
+        dialog = ModelConfigDialog(model_type, self)
+        
+        # Если пользователь подтвердил настройки
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            # Получаем параметры
+            self.model_params = dialog.get_params()
+            
+            # Выводим информацию о параметрах
+            params_text = "Выбранные параметры:\n\n"
+            for param, value in self.model_params.items():
+                params_text += f"{param}: {value}\n"
+            
+            # Переключаемся на вкладку параметров
+            self.tabs.setCurrentIndex(1)
+            
+            # Очищаем существующие параметры
+            for i in reversed(range(self.params_content_layout.count())):
+                self.params_content_layout.itemAt(i).widget().deleteLater()
+            
+            # Добавляем параметры
+            for param, value in self.model_params.items():
+                param_layout = QHBoxLayout()
+                param_label = QLabel(f"{param}:")
+                param_value = QLabel(f"{value}")
+                
+                param_layout.addWidget(param_label)
+                param_layout.addWidget(param_value)
+                param_layout.addStretch()
+                
+                self.params_content_layout.addLayout(param_layout)
+            
+            # Добавляем растягивающийся элемент в конец
+            self.params_content_layout.addStretch()
+            
+            # Обновляем строку состояния
+            self.statusBar().showMessage("Параметры модели настроены")
+    
+    def get_model_type_key(self) -> str:
+        """
+        Преобразует значение из комбобокса в ключ для модели.
+        
+        Returns:
+            str: Ключ модели ('random_forest' или 'knn')
+        """
+        model_type = self.model_type_combo.currentText()
+        
+        if model_type == "Random Forest":
+            return "random_forest"
+        elif model_type == "KNN Regressor":
+            return "knn"
+        else:
+            return "unknown"
+    
+    def train_model(self):
+        """Обучает модель с заданными параметрами."""
+        if self.data is None:
+            QMessageBox.warning(self, "Внимание", "Сначала загрузите данные")
+            return
+        
+        # Получаем целевой столбец
+        target_column = self.target_combo.currentText()
+        
+        if not target_column:
+            QMessageBox.warning(self, "Внимание", "Выберите целевой столбец")
+            return
+        
+        try:
+            # Подготавливаем данные
+            test_size = self.split_spin.value()
+            random_state = self.random_state_spin.value()
+            scale_data = self.scale_check.isChecked()
+            
+            data_info = self.data_loader.prepare_data(
+                target_column, test_size, random_state, scale_data
+            )
+            
+            # Если параметры модели не заданы через диалог, используем значения по умолчанию
+            if not hasattr(self, 'model_params'):
+                self.model_params = {}
+            
+            # Получаем тип модели
+            model_type = self.get_model_type_key()
+            
+            # Обучаем модель
+            self.statusBar().showMessage("Обучение модели...")
+            
+            # Получаем обучающие и тестовые данные
+            X_train = data_info['X_train']
+            X_test = data_info['X_test']
+            y_train = data_info['y_train']
+            y_test = data_info['y_test']
+            features = data_info['features']
+            
+            # Обучаем модель
+            self.model_results = self.model_trainer.train_model(
+                model_type, X_train, y_train, X_test, y_test, features, self.model_params
+            )
+            
+            # Отображаем результаты
+            self.display_results()
+            
+            # Активируем кнопку сохранения
             self.save_model_btn.setEnabled(True)
             
-            QMessageBox.information(
-                self, 
-                "Обучение завершено", 
-                f"Модель {model_name} успешно обучена.\nMAE: {metrics['MAE']:.4f}\nMSE: {metrics['MSE']:.4f}\nR²: {metrics['R2']:.4f}"
-            )
+            # Обновляем строку состояния
+            self.statusBar().showMessage("Модель успешно обучена")
+            
+            # Переключаемся на вкладку результатов
+            self.tabs.setCurrentIndex(2)
             
         except Exception as e:
-            QMessageBox.critical(self, "Ошибка", f"Ошибка при обучении модели: {str(e)}")
-
-    def save_model(self) -> None:
-        """Сохраняет обученную модель в файл."""
-        if not self.model_trainer.model:
-            QMessageBox.warning(self, "Предупреждение", "Сначала обучите модель")
-            return
+            QMessageBox.critical(self, "Ошибка обучения модели", str(e))
+    
+    def display_results(self):
+        """Отображает результаты обучения модели."""
+        if self.model_results:
+            # Метрики
+            metrics_text = "Метрики качества модели:\n\n"
+            metrics_text += format_metrics(self.model_results['metrics'])
+            metrics_text += f"\n\nВремя обучения: {self.model_results['training_time']:.2f} секунд"
             
+            self.metrics_text.setText(metrics_text)
+            
+            # Важность признаков (если доступно)
+            if 'feature_importance' in self.model_results and self.model_results['feature_importance']:
+                importance_text = "Важность признаков:\n\n"
+                
+                # Сортируем признаки по важности
+                sorted_importance = sorted(
+                    self.model_results['feature_importance'].items(),
+                    key=lambda x: x[1],
+                    reverse=True
+                )
+                
+                for feature, importance in sorted_importance:
+                    importance_text += f"{feature}: {importance:.4f}\n"
+                
+                self.feature_importance_text.setText(importance_text)
+            else:
+                self.feature_importance_text.setText("Информация о важности признаков недоступна для данного типа модели")
+    
+    def save_model(self):
+        """Сохраняет обученную модель."""
+        if not self.model_trainer.trained:
+            QMessageBox.warning(self, "Внимание", "Сначала обучите модель")
+            return
+        
+        # Открываем диалог сохранения
         file_path, _ = QFileDialog.getSaveFileName(
-            self, "Сохранить модель", "", "Model Files (*.pkl);;All Files (*)"
+            self, "Сохранить модель", "saved_models/model.joblib", "Joblib файлы (*.joblib)"
         )
         
-        if not file_path:
-            return
-            
-        try:
-            self.model_manager.save_model(self.model_trainer.model, file_path)
-            QMessageBox.information(self, "Успешно", "Модель успешно сохранена")
-        except Exception as e:
-            QMessageBox.critical(self, "Ошибка", f"Ошибка при сохранении модели: {str(e)}")
-
-    def load_model(self) -> None:
-        """Загружает обученную модель из файла."""
+        if file_path:
+            try:
+                # Сохраняем модель
+                saved_path = self.model_trainer.save(file_path)
+                
+                # Выводим сообщение
+                QMessageBox.information(
+                    self, "Модель сохранена", f"Модель успешно сохранена в файл:\n{saved_path}"
+                )
+                
+                # Обновляем строку состояния
+                self.statusBar().showMessage(f"Модель сохранена: {os.path.basename(saved_path)}")
+                
+            except Exception as e:
+                QMessageBox.critical(self, "Ошибка сохранения модели", str(e))
+    
+    def load_existing_model(self):
+        """Загружает существующую модель."""
+        # Открываем диалог выбора файла
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Загрузить модель", "", "Model Files (*.pkl);;All Files (*)"
+            self, "Загрузить модель", "saved_models", "Joblib файлы (*.joblib)"
         )
         
-        if not file_path:
+        if file_path:
+            try:
+                from models.model_utils import load_model
+                
+                # Загружаем модель и информацию о ней
+                model, model_info = load_model(file_path)
+                
+                # Устанавливаем модель в тренер
+                self.model_trainer.model = model
+                self.model_trainer.model_type = model_info['model_type']
+                self.model_trainer.training_time = model_info['training_time']
+                self.model_trainer.metrics = model_info['metrics']
+                self.model_trainer.best_params = model_info['params']
+                self.model_trainer.feature_names = model_info['feature_names']
+                self.model_trainer.trained = True
+                
+                # Создаем результаты для отображения
+                self.model_results = {
+                    'model_type': model_info['model_type'],
+                    'training_time': model_info['training_time'],
+                    'metrics': model_info['metrics'],
+                    'params': model_info['params']
+                }
+                
+                # Добавляем важность признаков, если доступно
+                if hasattr(model, 'feature_importances_'):
+                    self.model_results['feature_importance'] = {
+                        model_info['feature_names'][i]: model.feature_importances_[i]
+                        for i in range(len(model_info['feature_names']))
+                    }
+                
+                # Отображаем результаты
+                self.display_results()
+                
+                # Активируем кнопку сохранения
+                self.save_model_btn.setEnabled(True)
+                
+                # Переключаемся на вкладку результатов
+                self.tabs.setCurrentIndex(2)
+                
+                # Обновляем строку состояния
+                self.statusBar().showMessage(f"Модель загружена: {os.path.basename(file_path)}")
+                
+                # Выводим информацию
+                QMessageBox.information(
+                    self, "Модель загружена", 
+                    f"Модель успешно загружена из файла:\n{file_path}\n\n"
+                    f"Тип модели: {model_info['model_type']}\n"
+                    f"Дата обучения: {model_info.get('trained_date', 'Неизвестно')}"
+                )
+                
+            except Exception as e:
+                QMessageBox.critical(self, "Ошибка загрузки модели", str(e))
+    
+    def generate_report(self):
+        """Генерирует отчет о результатах обучения модели."""
+        if not self.model_trainer.trained:
+            QMessageBox.warning(self, "Внимание", "Сначала обучите модель")
             return
-            
+        
         try:
-            model = self.model_manager.load_model(file_path)
-            self.model_trainer.model = model
+            # Создаем информацию о наборе данных
+            dataset_info = {
+                'total_rows': len(self.data) if self.data is not None else 0,
+                'features': self.data_loader.features,
+                'target': self.data_loader.target_column
+            }
             
-            self.save_model_btn.setEnabled(True)
-            
-            model_info = str(model)
-            model_name = "Random Forest" if "RandomForest" in model_info else "KNN Regressor"
-         
-            self.model_combo.setCurrentText(model_name)
-            
-            QMessageBox.information(
-                self, 
-                "Успешно", 
-                f"Модель {model_name} успешно загружена"
+            # Генерируем отчет
+            model_name = f"{self.model_results['model_type']}_model"
+            report_path = self.report_generator.generate_training_report(
+                self.model_results, model_name, dataset_info
             )
+            
+            # Читаем содержимое отчета
+            with open(report_path, 'r', encoding='utf-8') as f:
+                report_content = f.read()
+            
+            # Отображаем отчет
+            self.report_text.setText(report_content)
+            
+            # Выводим сообщение
+            QMessageBox.information(
+                self, "Отчет создан", f"Отчет успешно создан и сохранен в файл:\n{report_path}"
+            )
+            
+            # Обновляем строку состояния
+            self.statusBar().showMessage(f"Отчет создан: {os.path.basename(report_path)}")
+            
         except Exception as e:
-            QMessageBox.critical(self, "Ошибка", f"Ошибка при загрузке модели: {str(e)}")
+            QMessageBox.critical(self, "Ошибка создания отчета", str(e))
