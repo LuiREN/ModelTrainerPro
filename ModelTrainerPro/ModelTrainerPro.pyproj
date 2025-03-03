@@ -29,6 +29,12 @@
     <Compile Include="ui\main_window.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="ui\style.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="utils\data_loader.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="utils\data_processor.py">
       <SubType>Code</SubType>
     </Compile>
