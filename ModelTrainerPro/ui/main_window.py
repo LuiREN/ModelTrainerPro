@@ -109,17 +109,33 @@ class MainWindow(QMainWindow):
     def create_header(self):
         """Создает заголовок приложения."""
         header_layout = QHBoxLayout()
-        
+    
         # Заголовок
         header_label = QLabel("ModelTrainerPro")
         header_label.setObjectName("header")
-        
+    
         # Добавление заголовка в layout
         header_layout.addWidget(header_label)
         header_layout.addStretch()
-        
+    
+        # Кнопка справки
+        self.help_button = QPushButton("?")
+        self.help_button.setFixedSize(30, 30)  # Маленькая круглая кнопка
+        self.help_button.setObjectName("helpButton")  # Специальный стиль
+        self.help_button.setToolTip("Справка")
+        self.help_button.clicked.connect(self.show_help)
+    
+        header_layout.addWidget(self.help_button)
+    
         # Добавление layout в главный layout
         self.main_layout.addLayout(header_layout)
+
+    def show_help(self):
+        """Показывает окно справки."""
+        from ui.help_dialog import HelpDialog
+    
+        help_dialog = HelpDialog(self)
+        help_dialog.exec()
     
     def create_toolbar(self):
         """Создает панель инструментов."""

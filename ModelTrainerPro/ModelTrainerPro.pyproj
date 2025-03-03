@@ -29,6 +29,9 @@
     <Compile Include="models\model_utils.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="ui\help_dialog.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="ui\main_window.py">
       <SubType>Code</SubType>
     </Compile>
