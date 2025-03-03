@@ -140,35 +140,40 @@ class MainWindow(QMainWindow):
     def create_toolbar(self):
         """Создает панель инструментов."""
         toolbar_layout = QHBoxLayout()
-        
+    
         # Кнопка загрузки данных
         self.load_data_btn = QPushButton("Загрузить данные")
         self.load_data_btn.clicked.connect(self.load_data)
-        
+    
         # Выбор модели
         self.model_type_label = QLabel("Модель:")
         self.model_type_combo = QComboBox()
         self.model_type_combo.addItems(["Random Forest", "KNN Regressor"])
-        
+    
         # Кнопка настройки модели
         self.model_config_btn = QPushButton("Настроить модель")
         self.model_config_btn.clicked.connect(self.configure_model)
         self.model_config_btn.setEnabled(False)
-        
+    
         # Кнопка обучения модели
         self.train_model_btn = QPushButton("Обучить модель")
         self.train_model_btn.clicked.connect(self.train_model)
         self.train_model_btn.setEnabled(False)
-        
+    
         # Кнопка сохранения модели
         self.save_model_btn = QPushButton("Сохранить модель")
         self.save_model_btn.clicked.connect(self.save_model)
         self.save_model_btn.setEnabled(False)
-        
+    
         # Кнопка загрузки модели
         self.load_model_btn = QPushButton("Загрузить модель")
         self.load_model_btn.clicked.connect(self.load_existing_model)
-        
+    
+        # Кнопка тестирования модели
+        self.test_model_btn = QPushButton("Тестировать модель")
+        self.test_model_btn.clicked.connect(self.test_model)
+        self.test_model_btn.setEnabled(False)
+    
         # Добавление виджетов в layout
         toolbar_layout.addWidget(self.load_data_btn)
         toolbar_layout.addWidget(self.model_type_label)
@@ -177,7 +182,8 @@ class MainWindow(QMainWindow):
         toolbar_layout.addWidget(self.train_model_btn)
         toolbar_layout.addWidget(self.save_model_btn)
         toolbar_layout.addWidget(self.load_model_btn)
-        
+        toolbar_layout.addWidget(self.test_model_btn)
+    
         # Добавление layout в главный layout
         self.main_layout.addLayout(toolbar_layout)
     
@@ -469,8 +475,9 @@ class MainWindow(QMainWindow):
             # Отображаем результаты
             self.display_results()
             
-            # Активируем кнопку сохранения
+            # Активируем кнопки
             self.save_model_btn.setEnabled(True)
+            self.test_model_btn.setEnabled(True)
             
             # Обновляем строку состояния
             self.statusBar().showMessage("Модель успешно обучена")
@@ -577,8 +584,9 @@ class MainWindow(QMainWindow):
                 # Отображаем результаты
                 self.display_results()
                 
-                # Активируем кнопку сохранения
+                # Активируем кнопки
                 self.save_model_btn.setEnabled(True)
+                self.test_model_btn.setEnabled(True)
                 
                 # Переключаемся на вкладку результатов
                 self.tabs.setCurrentIndex(2)
@@ -634,3 +642,29 @@ class MainWindow(QMainWindow):
             
         except Exception as e:
             QMessageBox.critical(self, "Ошибка создания отчета", str(e))
+
+    def test_model(self):
+        """Открывает диалог для тестирования модели."""
+        if not self.model_trainer.trained:
+            QMessageBox.warning(self, "Внимание", "Сначала обучите или загрузите модель")
+            return
+    
+        try:
+            from ui.model_test_dialog import ModelTestDialog
+        
+            # Создаем информацию о модели
+            model_info = {
+                'model_type': self.model_trainer.model_type,
+                'feature_names': self.model_trainer.feature_names,
+                'metrics': self.model_trainer.metrics,
+                'target': self.data_loader.target_column,
+                'scaler': self.data_loader.scaler,
+                'trained_date': time.strftime("%Y-%m-%d %H:%M:%S")
+            }
+        
+            # Создаем и показываем диалог тестирования
+            test_dialog = ModelTestDialog(self.model_trainer.model, model_info, self.data_loader, self)
+            test_dialog.exec()
+        
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка тестирования модели", str(e))

@@ -38,6 +38,9 @@
     <Compile Include="ui\model_config.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="ui\model_test_dialog.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="ui\style.py">
       <SubType>Code</SubType>
     </Compile>
