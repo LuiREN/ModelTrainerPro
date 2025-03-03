@@ -38,6 +38,9 @@
     <Compile Include="utils\data_loader.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="utils\report_generator.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <InterpreterReference Include="Global|PythonCore|3.11" />
