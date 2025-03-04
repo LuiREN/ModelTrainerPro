@@ -109,7 +109,8 @@ ModelTrainerPro/
 
 <table>
   <tr>
-    <td><img src="./screenshots/main_window.png" alt="Главное окно" width="400"/></td>
+    <td><img src=".![image](https://github.com/user-attachments/assets/d33fa3c4-19c1-492b-975e-8e82bc3f108a)
+" alt="Главное окно" width="400"/></td>
     <td><img src="./screenshots/model_config.png" alt="Настройка модели" width="400"/></td>
   </tr>
   <tr>
