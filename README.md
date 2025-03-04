@@ -105,19 +105,6 @@ ModelTrainerPro/
 4. Просмотрите результаты тестов и графики
 5. При необходимости экспортируйте отчет
 
-## 📸 Скриншоты
-
-<table>
-  <tr>
-    <td><img src=".![image](https://github.com/user-attachments/assets/d33fa3c4-19c1-492b-975e-8e82bc3f108a)
-" alt="Главное окно" width="400"/></td>
-    <td><img src="./screenshots/model_config.png" alt="Настройка модели" width="400"/></td>
-  </tr>
-  <tr>
-    <td><img src="./screenshots/results.png" alt="Результаты обучения" width="400"/></td>
-    <td><img src="./screenshots/stationarity.png" alt="Тест на стационарность" width="400"/></td>
-  </tr>
-</table>
 
 ## 📊 Примеры результатов
 
