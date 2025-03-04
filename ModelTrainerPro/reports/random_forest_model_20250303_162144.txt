@@ -1,0 +1,108 @@
+# Отчет об обучении модели random_forest_model
+
+Дата создания: 2025-03-03 16:21:44
+
+## Информация о модели
+
+* Тип модели: random_forest
+* Время обучения: 0.68 секунд
+
+## Параметры модели
+
+* n_estimators: 100
+* max_depth: 5
+* min_samples_split: 10
+* min_samples_leaf: 6
+* random_state: 42
+
+## Метрики качества
+
+* MAE: 0.3126
+* MSE: 0.1593
+* RMSE: 0.3991
+* R2: 0.9992
+
+## Информация о наборе данных
+
+* Количество строк: 5804
+* Количество признаков: 31
+* Целевая переменная: temperature_day
+
+### Список признаков
+
+* pressure_day
+* temperature_evening
+* pressure_evening
+* cloudiness_day_clear
+* cloudiness_day_partly_cloudy
+* cloudiness_day_variable
+* cloudiness_day_overcast
+* cloudiness_evening_clear
+* cloudiness_evening_partly_cloudy
+* cloudiness_evening_variable
+* cloudiness_evening_overcast
+* wind_speed_day
+* wind_direction_day_n
+* wind_direction_day_ne
+* wind_direction_day_e
+* wind_direction_day_se
+* wind_direction_day_s
+* wind_direction_day_sw
+* wind_direction_day_w
+* wind_direction_day_nw
+* wind_speed_evening
+* wind_direction_evening_n
+* wind_direction_evening_ne
+* wind_direction_evening_e
+* wind_direction_evening_se
+* wind_direction_evening_s
+* wind_direction_evening_sw
+* wind_direction_evening_w
+* wind_direction_evening_nw
+* temperature_day_fahrenheit
+* temperature_evening_fahrenheit
+
+## Важность признаков
+
+* temperature_day_fahrenheit: 1.0000
+* pressure_day: 0.0000
+* temperature_evening: 0.0000
+* pressure_evening: 0.0000
+* cloudiness_day_clear: 0.0000
+* cloudiness_day_partly_cloudy: 0.0000
+* cloudiness_day_variable: 0.0000
+* cloudiness_day_overcast: 0.0000
+* cloudiness_evening_clear: 0.0000
+* cloudiness_evening_partly_cloudy: 0.0000
+* cloudiness_evening_variable: 0.0000
+* cloudiness_evening_overcast: 0.0000
+* wind_speed_day: 0.0000
+* wind_direction_day_n: 0.0000
+* wind_direction_day_ne: 0.0000
+* wind_direction_day_e: 0.0000
+* wind_direction_day_se: 0.0000
+* wind_direction_day_s: 0.0000
+* wind_direction_day_sw: 0.0000
+* wind_direction_day_w: 0.0000
+* wind_direction_day_nw: 0.0000
+* wind_speed_evening: 0.0000
+* wind_direction_evening_n: 0.0000
+* wind_direction_evening_ne: 0.0000
+* wind_direction_evening_e: 0.0000
+* wind_direction_evening_se: 0.0000
+* wind_direction_evening_s: 0.0000
+* wind_direction_evening_sw: 0.0000
+* wind_direction_evening_w: 0.0000
+* wind_direction_evening_nw: 0.0000
+* temperature_evening_fahrenheit: 0.0000
+
+## Выводы и рекомендации
+
+* Качество модели: отличное (R² = 0.9992)
+* Рекомендации:
+* Наиболее важные признаки для модели:
+  - temperature_day_fahrenheit (важность: 1.0000)
+  - pressure_day (важность: 0.0000)
+  - temperature_evening (важность: 0.0000)
+  - pressure_evening (важность: 0.0000)
+  - cloudiness_day_clear (важность: 0.0000)

@@ -41,6 +41,9 @@
     <Compile Include="ui\model_test_dialog.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="ui\stationarity_dialog.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="ui\style.py">
       <SubType>Code</SubType>
     </Compile>
@@ -48,6 +51,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="utils\report_generator.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="utils\stationarity_tests.py">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
@@ -58,6 +64,9 @@
     <Folder Include="models\" />
     <Folder Include="utils\" />
     <Folder Include="ui\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="requirements.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

@@ -177,6 +177,11 @@ class MainWindow(QMainWindow):
         self.test_model_btn = QPushButton("Тестировать модель")
         self.test_model_btn.clicked.connect(self.test_model)
         self.test_model_btn.setEnabled(False)
+
+         # Кнопка теста на стационарность
+        self.stationarity_test_btn = QPushButton("Тест на стационарность")
+        self.stationarity_test_btn.clicked.connect(self.run_stationarity_test)
+        self.stationarity_test_btn.setEnabled(False)
     
         # Добавление виджетов в layout
         toolbar_layout.addWidget(self.load_data_btn)
@@ -187,6 +192,7 @@ class MainWindow(QMainWindow):
         toolbar_layout.addWidget(self.save_model_btn)
         toolbar_layout.addWidget(self.load_model_btn)
         toolbar_layout.addWidget(self.test_model_btn)
+        toolbar_layout.addWidget(self.stationarity_test_btn)
     
         # Добавление layout в главный layout
         self.main_layout.addLayout(toolbar_layout)
@@ -344,6 +350,7 @@ class MainWindow(QMainWindow):
                 # Активация кнопок
                 self.model_config_btn.setEnabled(True)
                 self.train_model_btn.setEnabled(True)
+                self.stationarity_test_btn.setEnabled(True)
                 
                 # Выводим сообщение в строке состояния
                 self.statusBar().showMessage(f"Данные загружены: {os.path.basename(file_path)}")
@@ -672,3 +679,19 @@ class MainWindow(QMainWindow):
         
         except Exception as e:
             QMessageBox.critical(self, "Ошибка тестирования модели", str(e))
+
+    def run_stationarity_test(self):
+        """Открывает диалог для тестов на стационарность."""
+        if self.data is None:
+            QMessageBox.warning(self, "Внимание", "Сначала загрузите данные")
+            return
+    
+        try:
+            from ui.stationarity_dialog import StationarityDialog
+        
+            # Создаем и показываем диалог теста стационарности
+            self.stationarity_dialog = StationarityDialog(self.data, self)
+            self.stationarity_dialog.show()
+        
+        except Exception as e:
+            QMessageBox.critical(self, "Ошибка теста стационарности", str(e))

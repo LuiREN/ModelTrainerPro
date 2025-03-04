@@ -1,0 +1,67 @@
+# Отчет об обучении модели knn_model
+
+Дата создания: 2025-03-03 16:17:26
+
+## Информация о модели
+
+* Тип модели: knn
+* Время обучения: 0.00 секунд
+
+## Параметры модели
+
+* n_neighbors: 5
+* weights: uniform
+* algorithm: auto
+* p: 2
+
+## Метрики качества
+
+* MAE: 2.8145
+* MSE: 16.7544
+* RMSE: 4.0932
+* R2: 0.9128
+
+## Информация о наборе данных
+
+* Количество строк: 5804
+* Количество признаков: 31
+* Целевая переменная: temperature_day
+
+### Список признаков
+
+* pressure_day
+* temperature_evening
+* pressure_evening
+* cloudiness_day_clear
+* cloudiness_day_partly_cloudy
+* cloudiness_day_variable
+* cloudiness_day_overcast
+* cloudiness_evening_clear
+* cloudiness_evening_partly_cloudy
+* cloudiness_evening_variable
+* cloudiness_evening_overcast
+* wind_speed_day
+* wind_direction_day_n
+* wind_direction_day_ne
+* wind_direction_day_e
+* wind_direction_day_se
+* wind_direction_day_s
+* wind_direction_day_sw
+* wind_direction_day_w
+* wind_direction_day_nw
+* wind_speed_evening
+* wind_direction_evening_n
+* wind_direction_evening_ne
+* wind_direction_evening_e
+* wind_direction_evening_se
+* wind_direction_evening_s
+* wind_direction_evening_sw
+* wind_direction_evening_w
+* wind_direction_evening_nw
+* temperature_day_fahrenheit
+* temperature_evening_fahrenheit
+
+## Выводы и рекомендации
+
+* Качество модели: отличное (R² = 0.9128)
+* Рекомендации:
